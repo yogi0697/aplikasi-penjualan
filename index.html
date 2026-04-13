@@ -2,36 +2,46 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<title>Aplikasi Penjualan Online</title>
+<title>Aplikasi Penjualan PRO</title>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 <style>
-body{font-family:Arial;padding:20px;background:#f5f5f5}
-input,button{margin:5px;padding:8px}
-.box{border:1px solid #ccc;padding:10px;margin-top:10px;background:#fff}
+body{font-family:Arial;padding:20px;background:#eef2f7}
+h2{text-align:center}
+.card{background:#fff;padding:15px;margin:10px 0;border-radius:10px;box-shadow:0 2px 5px rgba(0,0,0,0.1)}
+input,button{margin:5px;padding:10px;border-radius:5px;border:1px solid #ccc}
+button{background:#4CAF50;color:#fff;border:none;cursor:pointer}
+button:hover{background:#45a049}
 </style>
 </head>
 <body>
 
-<h2>Aplikasi Penjualan ONLINE</h2>
+<h2>💰 Aplikasi Penjualan Online</h2>
 
+<div class="card">
 <h3>Tambah Barang</h3>
 <input id="nama" placeholder="Nama Barang">
 <input id="stok" type="number" placeholder="Stok">
-<input id="harga" type="number" placeholder="Harga">
+<input id="harga" type="number" placeholder="Harga Jual">
 <input id="modal" type="number" placeholder="Modal">
-<button onclick="tambahBarang()">Tambah</button>
+<button onclick="tambahBarang()">Tambah Barang</button>
+</div>
 
+<div class="card">
 <h3>Daftar Barang</h3>
 <div id="listBarang"></div>
+</div>
 
+<div class="card">
 <h3>Penjualan</h3>
 <div id="listJual"></div>
+</div>
 
-<h3>Total Profit: <span id="totalProfit">0</span></h3>
+<div class="card">
+<h3>Total Profit: Rp <span id="totalProfit">0</span></h3>
+</div>
 
 <script>
-// 🔥 CONFIG FIREBASE (WAJIB DIGANTI)
 const firebaseConfig = {
   apiKey: "ISI_API_KEY",
   authDomain: "ISI_PROJECT.firebaseapp.com",
@@ -42,27 +52,37 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 async function tambahBarang(){
+  if(!nama.value) return alert('Nama wajib diisi');
+
   await db.collection("barang").add({
     nama:nama.value,
-    stok:parseInt(stok.value),
-    harga:parseInt(harga.value),
-    modal:parseInt(modal.value)
+    stok:parseInt(stok.value)||0,
+    harga:parseInt(harga.value)||0,
+    modal:parseInt(modal.value)||0
   });
+
+  nama.value='';stok.value='';harga.value='';modal.value='';
 }
 
 async function jual(id,data){
-  let qty=parseInt(prompt('Jumlah'));
-  if(data.stok<qty) return alert('Stok kurang');
+  let qty=parseInt(prompt('Jumlah terjual'));
+  if(!qty || qty<=0) return;
+
+  if(data.stok<qty) return alert('Stok tidak cukup');
 
   await db.collection("barang").doc(id).update({
     stok:data.stok-qty
   });
 
   let t=new Date().toISOString().split('T')[0];
-  let profit=(data.harga-data.modal)*qty;
+  let profit=(Number(data.harga)-Number(data.modal))*qty;
 
   await db.collection("penjualan").add({
-    nama:data.nama,qty,tanggal:t,total:data.harga*qty,profit
+    nama:data.nama,
+    qty:qty,
+    tanggal:t,
+    total:Number(data.harga)*qty,
+    profit:profit
   });
 }
 
@@ -71,7 +91,12 @@ function loadData(){
     listBarang.innerHTML='';
     snap.forEach(doc=>{
       let b=doc.data();
-      listBarang.innerHTML+=`<div class='box'>${b.nama}<br>Stok:${b.stok}<br><button onclick='jual("${doc.id}",${JSON.stringify(b)})'>Jual</button></div>`;
+      listBarang.innerHTML+=`<div class='card'>
+        <b>${b.nama}</b><br>
+        Stok: ${b.stok}<br>
+        Harga: Rp ${b.harga}<br>
+        <button onclick='jual("${doc.id}",${JSON.stringify(b)})'>Jual</button>
+      </div>`;
     });
   });
 
@@ -81,11 +106,18 @@ function loadData(){
 
     snap.forEach(doc=>{
       let p=doc.data();
-      total+=p.profit;
-      listJual.innerHTML+=`<div class='box'>${p.nama} - ${p.tanggal}<br>Qty:${p.qty}<br>Total:${p.total}<br>Profit:${p.profit}</div>`;
+      total += Number(p.profit) || 0;
+
+      listJual.innerHTML+=`<div class='card'>
+        <b>${p.nama}</b><br>
+        Tanggal: ${p.tanggal}<br>
+        Qty: ${p.qty}<br>
+        Total: Rp ${p.total}<br>
+        Profit: Rp ${p.profit}
+      </div>`;
     });
 
-    totalProfit.innerText=total;
+    totalProfit.innerText = total.toLocaleString();
   });
 }
 
